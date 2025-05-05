@@ -7,7 +7,7 @@ h1 {
 
 .search-container {
     width: 60%;
-    margin: 0 auto 20px;
+    margin: 20 auto 20px;
     text-align: left;
     display: center;
     align-items: center;
@@ -22,6 +22,17 @@ h1 {
     vertical-align: middle;
     border: 1px solid black;
     border-radius: 5px;
+}
+
+.search-container input[type="number"]{
+    width: 173px;
+    height: 40px;
+    padding: 10px;
+    display: center;
+    vertical-align: middle;
+    border: 1px solid black;
+    border-radius: 5px;
+    margin: 20px auto 20px;
 }
 
 .search-container input[type="submit"] {
@@ -39,7 +50,7 @@ h1 {
 .product-table {
     border: 1px solid black;
     border-collapse: collapse;
-    width: 60%;
+    width: 100%;
     margin: 0 auto 30;
 }
 

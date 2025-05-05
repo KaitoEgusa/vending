@@ -2,22 +2,36 @@
 
 namespace App\Http\Controllers;
 
+
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use App\Models\Vending;
 use Illuminate\Http\Request;
 use App\Http\Requests\ProductRequest;
 use Illuminate\Support\Facades\DB;
 use App\Models\Company;
+use Illuminate\Support\Facades\Log;
 
-class ProductController extends Controller
-{
-    //商品のデータを取得してリストを表示
-    public function list() { $products = Vending::paginate(7);
-        $companies = Company::all();
-        $keyword = '';
-        $maker = '';
-        return view('page.list', compact('products', 'keyword', 'maker', 'companies')); }
+class ProductController extends Controller { //商品のデータを取得してリストを表示
+    public function list(Request $request) { $keyword = $request->input('keyword');
+    $maker = $request->input('maker');
+    $sort = $request->input('sort', 'id'); // デフォルトはid
+    $order = $request->input('order', 'desc'); // デフォルトは降順
 
+    $query = Vending::query();
 
+    if (!empty($keyword)) { $query->where('product_name', 'like', "%{$keyword}%");
+    }
+
+    if (!empty($maker)) { $company = Company::where('company_name', $maker)->first();
+        if ($company) { $query->where('company_id', $company->id);
+        }
+    }
+
+    $products = $query->orderBy($sort, $order)->paginate(7);
+    $companies = Company::all();
+
+    return view('page.list', compact('products', 'keyword', 'maker', 'companies', 'sort', 'order'));
+}
     //新規登録画面に行く
     public function registShow() { $companies = Company::all();
         return view('page.regist', ['companies' => $companies]); }
@@ -47,29 +61,40 @@ class ProductController extends Controller
         return redirect(route('list')) -> with('success', '商品が登録されました。');
     }
 
-    //商品を削除する
-    public function delete($id) { DB::beginTransaction();
-        try { $product = Vending::findOrFail($id);
-            $product->delete();
-            //削除した時IDがリセットされるようにする
-            $products = Vending::orderBy('id')->get();
-            $count = 1;
-            foreach ($products as $product) { $product->id = $count;
-                $product->save();
-                $count++;
-            }
+    //商品の削除をする
+    public function delete($id)
+{
+    try {
+        $product = Vending::findOrFail($id);
+        $product->delete();
 
-            // AUTO_INCREMENTをリセット
-            DB::statement('ALTER TABLE products AUTO_INCREMENT = ' . $count);
-
-            DB::commit();
-            return redirect(route('list'))->with('success', '商品が削除されました。');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->withErrors(['error' => '削除に失敗しました。']);
+        //ID振り直し処理
+        $products = Vending::orderBy('id')->get();
+        $count = 1;
+        foreach ($products as $p) {
+            $p->id = $count;
+            $p->save();
+            $count++;
         }
-    }
 
+        // AUTO_INCREMENTのリセット
+        DB::statement('ALTER TABLE products AUTO_INCREMENT = ' . $count);
+
+        if (request()->ajax()) {
+            return response()->json(['message' => '削除成功']);
+        }
+
+        return redirect(route('list'))->with('success', '商品が削除されました。');
+    } catch (\Exception $e) {
+        Log::error('削除処理中にエラー: ' . $e->getMessage());
+
+        if (request()->ajax()) {
+            return response()->json(['message' => '削除に失敗しました'], 500);
+        }
+
+        return back()->withErrors(['error' => '削除に失敗しました。']);
+    }
+}
     //編集画面を表示する
     public function editShow($id) { $product = Vending::findOrFail($id);
         $companies = Company::all();
@@ -96,25 +121,57 @@ class ProductController extends Controller
         return redirect(route('list')) -> with('success', '商品情報が更新されました。');
     } catch (\Exception $e) {
         DB::rollback();
-        dd($e -> getMessage());
+
         return back() -> withErrors(['error' => '更新に失敗しました。']);
     }
     }
 
     // 商品を検索する
-    public function search(Request $request) { $query = Vending::query();
-    $keyword = $request -> input('keyword');
-    $maker = $request -> input('maker'); if (!empty($keyword)) { $query -> where('product_name', 'LIKE', "%{$keyword}%");
-    }
-    if (!empty($maker)) { $company = Company::where('company_name', $maker)->first();
-        if ($company) { $query->where('company_id', $company->id);
+    public function search(Request $request) {
+        $query = Vending::query();
+
+        $keyword   = $request->input('keyword');
+        $maker     = $request->input('maker');
+        $priceMin  = $request->input('price_min');
+        $priceMax  = $request->input('price_max');
+        $stockMin  = $request->input('stock_min');
+        $stockMax  = $request->input('stock_max');
+
+        if (!empty($keyword)) {
+            $query->where('product_name', 'LIKE', "%{$keyword}%");
         }
-    }
-    $products = $query->paginate(7);
-    $companies = Company::all();
 
-    return view('page.list', compact('products', 'keyword', 'maker', 'companies'));
-    }
+        if (!empty($maker)) {
+            $company = Company::where('company_name', $maker)->first();
+            if ($company) {
+                $query->where('company_id', $company->id);
+            }
+        }
 
+        if (!empty($priceMin)) {
+            $query->where('price', '>=', $priceMin);
+        }
+
+        if (!empty($priceMax)) {
+            $query->where('price', '<=', $priceMax);
+        }
+
+        if (!empty($stockMin)) {
+            $query->where('stock', '>=', $stockMin);
+        }
+
+        if (!empty($stockMax)) {
+            $query->where('stock', '<=', $stockMax);
+        }
+
+        $products = $query->paginate(7);
+        $companies = Company::all();
+
+        if ($request->ajax()) {
+            return view('partials.product_table', compact('products'))->render();
+        }
+
+        return view('page.list', compact('products', 'keyword', 'maker', 'companies'));
+    }
 
 }
