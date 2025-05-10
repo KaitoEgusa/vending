@@ -32,28 +32,33 @@
         <input type="number" name="stock_max" placeholder="在庫上限">
         <input type = "submit" value = "検索">
 <br>
+@php
+    $queryParams = request()->only([
+        'keyword', 'maker', 'price_min', 'price_max', 'stock_min', 'stock_max'
+    ]);
+@endphp
 <th>
-    <a href="{{ route('list', ['sort' => 'id', 'order' => $sort === 'id' && $order === 'asc' ? 'desc' : 'asc']) }}">
+    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'id', 'order' => $sort === 'id' && $order === 'asc' ? 'desc' : 'asc'])) }}">
     ID
     </a>
 </th>
 <th>
-    <a href="{{ route('list', ['sort' => 'product_name', 'order' => $sort === 'product_name' && $order === 'asc' ? 'desc' : 'asc']) }}">
+    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'product_name', 'order' => $sort === 'product_name' && $order === 'asc' ? 'desc' : 'asc'])) }}">
     商品名
     </a>
 </th>
 <th>
-    <a href="{{ route('list', ['sort' => 'company_id', 'order' => $sort === 'company_id' && $order === 'asc' ? 'desc' : 'asc']) }}">
+    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'company_id', 'order' => $sort === 'company_id' && $order === 'asc' ? 'desc' : 'asc'])) }}">
     メーカー
     </a>
 </th>
 <th>
-    <a href="{{ route('list', ['sort' => 'price', 'order' => $sort === 'price' && $order === 'asc' ? 'desc' : 'asc']) }}">
+    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'price', 'order' => $sort === 'price' && $order === 'asc' ? 'desc' : 'asc'])) }}">
     価格
     </a>
 </th>
 <th>
-    <a href="{{ route('list', ['sort' => 'stock', 'order' => $sort === 'stock' && $order === 'asc' ? 'desc' : 'asc']) }}">
+    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'stock', 'order' => $sort === 'stock' && $order === 'asc' ? 'desc' : 'asc'])) }}">
     在庫数
     </a>
 </th>
