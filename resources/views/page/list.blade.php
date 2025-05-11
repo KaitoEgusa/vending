@@ -33,8 +33,7 @@
         <input type = "submit" value = "検索">
 <br>
 @php
-    $queryParams = request()->only([
-        'keyword', 'maker', 'price_min', 'price_max', 'stock_min', 'stock_max'
+    $queryParams = request()->only([ 'keyword', 'maker', 'price_min', 'price_max', 'stock_min', 'stock_max'
     ]);
 @endphp
 <th>
