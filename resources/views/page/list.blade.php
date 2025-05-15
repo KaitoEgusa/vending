@@ -14,7 +14,7 @@
 <h1>商品一覧画面</h1>
 
 <div class = "search-container">
-    <form id="search-form" action = "{{ route('search') }}" method="GET">
+    <form id="search-form" action = "{{ route('list') }}" method="GET">
         @csrf
         <input type = "text" name = "keyword" value = "{{ old('keyword', $keyword) }}" placeholder = "検索キーワード">
         <select name="maker">
@@ -33,34 +33,8 @@
         <input type = "submit" value = "検索">
 <br>
 @php
-    $queryParams = request()->only([ 'keyword', 'maker', 'price_min', 'price_max', 'stock_min', 'stock_max'
-    ]);
+$queryParams = request()->all();
 @endphp
-<th>
-    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'id', 'order' => $sort === 'id' && $order === 'asc' ? 'desc' : 'asc'])) }}">
-    ID
-    </a>
-</th>
-<th>
-    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'product_name', 'order' => $sort === 'product_name' && $order === 'asc' ? 'desc' : 'asc'])) }}">
-    商品名
-    </a>
-</th>
-<th>
-    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'company_id', 'order' => $sort === 'company_id' && $order === 'asc' ? 'desc' : 'asc'])) }}">
-    メーカー
-    </a>
-</th>
-<th>
-    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'price', 'order' => $sort === 'price' && $order === 'asc' ? 'desc' : 'asc'])) }}">
-    価格
-    </a>
-</th>
-<th>
-    <a href="{{ route('list', array_merge($queryParams, ['sort' => 'stock', 'order' => $sort === 'stock' && $order === 'asc' ? 'desc' : 'asc'])) }}">
-    在庫数
-    </a>
-</th>
     </form>
 <div id="product-table-container">
     @if ($products->isEmpty())
@@ -82,7 +56,7 @@ $(document).ready(function () {
         e.preventDefault(); // ページ遷移をストップする
 
         $.ajax({
-            url: '{{ route("search") }}',
+            url: '{{ route("list") }}',
             type: 'GET',
             data: $(this).serialize(),
             success: function (data) {

@@ -12,29 +12,72 @@ use App\Models\Company;
 use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller { //商品のデータを取得してリストを表示
-    public function list(Request $request) { $keyword = $request->input('keyword');
-    $maker = $request->input('maker');
-    $sort = $request->input('sort', 'id'); // デフォルトはid
-    $order = $request->input('order', 'desc'); // デフォルトは降順
+    public function list(Request $request) { $query = Vending::query();
 
-    $query = Vending::query();
+    // 検索条件
+    $keyword   = $request->input('keyword');
+    $maker     = $request->input('maker');
+    $priceMin  = $request->input('price_min');
+    $priceMax  = $request->input('price_max');
+    $stockMin  = $request->input('stock_min');
+    $stockMax  = $request->input('stock_max');
 
-    if (!empty($keyword)) { $query->where('product_name', 'like', "%{$keyword}%");
+    // 検索の絞り込み
+    if (!empty($keyword)) {
+        $query->where('product_name', 'LIKE', "%{$keyword}%");
     }
 
-    if (!empty($maker)) { $company = Company::where('company_name', $maker)->first();
-        if ($company) { $query->where('company_id', $company->id);
+    if (!empty($maker)) {
+        $company = Company::where('company_name', $maker)->first();
+        if ($company) {
+            $query->where('company_id', $company->id);
         }
     }
 
-    $products = $query->orderBy($sort, $order)->paginate(7);
+    if (!empty($priceMin)) {
+        $query->where('price', '>=', $priceMin);
+    }
+
+    if (!empty($priceMax)) {
+        $query->where('price', '<=', $priceMax);
+    }
+
+    if (!empty($stockMin)) {
+        $query->where('stock', '>=', $stockMin);
+    }
+
+    if (!empty($stockMax)) {
+        $query->where('stock', '<=', $stockMax);
+    }
+
+    // ソート処理
+    $sort  = $request->input('sort', 'id');         // デフォルト: id
+    $order = $request->input('order', 'desc');      // デフォルト: 降順
+    $query->orderBy($sort, $order);
+
+    // ページネーション + クエリ引き継ぎ
+    $products = $query->paginate(7)->appends($request->all());
+
     $companies = Company::all();
 
-    return view('page.list', compact('products', 'keyword', 'maker', 'companies', 'sort', 'order'));
-}
+    // Ajaxのときはテーブル部分だけ返す
+    if ($request->ajax()) { return view('partials.product_table', [
+        'products' => $products,
+        'sort' => $sort,
+        'order' => $order
+        ])->render();
+    }
+    // 通常の表示
+    return view('page.list', compact(
+        'products', 'keyword', 'maker',
+        'priceMin', 'priceMax', 'stockMin', 'stockMax', 'sort', 'order', 'companies'
+    ));
+    }
+
     //新規登録画面に行く
     public function registShow() { $companies = Company::all();
         return view('page.regist', ['companies' => $companies]); }
+
 
     //詳細画面に行く
     public function detailShow($id) { $product = Vending::findOrFail($id);
@@ -94,7 +137,8 @@ class ProductController extends Controller { //商品のデータを取得して
 
         return back()->withErrors(['error' => '削除に失敗しました。']);
     }
-}
+    }
+
     //編集画面を表示する
     public function editShow($id) { $product = Vending::findOrFail($id);
         $companies = Company::all();
@@ -125,53 +169,4 @@ class ProductController extends Controller { //商品のデータを取得して
         return back() -> withErrors(['error' => '更新に失敗しました。']);
     }
     }
-
-    // 商品を検索する
-    public function search(Request $request) {
-        $query = Vending::query();
-
-        $keyword   = $request->input('keyword');
-        $maker     = $request->input('maker');
-        $priceMin  = $request->input('price_min');
-        $priceMax  = $request->input('price_max');
-        $stockMin  = $request->input('stock_min');
-        $stockMax  = $request->input('stock_max');
-
-        if (!empty($keyword)) {
-            $query->where('product_name', 'LIKE', "%{$keyword}%");
-        }
-
-        if (!empty($maker)) {
-            $company = Company::where('company_name', $maker)->first();
-            if ($company) {
-                $query->where('company_id', $company->id);
-            }
-        }
-
-        if (!empty($priceMin)) {
-            $query->where('price', '>=', $priceMin);
-        }
-
-        if (!empty($priceMax)) {
-            $query->where('price', '<=', $priceMax);
-        }
-
-        if (!empty($stockMin)) {
-            $query->where('stock', '>=', $stockMin);
-        }
-
-        if (!empty($stockMax)) {
-            $query->where('stock', '<=', $stockMax);
-        }
-
-        $products = $query->paginate(7);
-        $companies = Company::all();
-
-        if ($request->ajax()) {
-            return view('partials.product_table', compact('products'))->render();
-        }
-
-        return view('page.list', compact('products', 'keyword', 'maker', 'companies'));
-    }
-
 }
